@@ -24,7 +24,7 @@ async def main():
     #use_case = тут точно будет use_case
 
     listener = RabbitMQListener(
-        queue_name=QueueTypes.inference_queue,
+        queue_name=QueueTypes.training_queue,
         callback= None #use_case.execute
     )
 
