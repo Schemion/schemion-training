@@ -5,7 +5,7 @@ from app.infrastructure.trainers.yolo_trainer import YoloTrainer
 
 class DetectorTrainerFactory(IDetectorTrainerFactory):
 
-    def create(self, architecture: str, architecture_profile: str, classes: list[str]) -> IDetectorTrainer:
+    def create(self, architecture: str, architecture_profile: str) -> IDetectorTrainer:
         architecture = architecture.lower()
 
         if architecture == "yolo":

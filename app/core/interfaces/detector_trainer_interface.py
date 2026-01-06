@@ -14,3 +14,8 @@ class IDetectorTrainer(ABC):
     @abstractmethod
     def export(self, output_path: str) -> None:
         ...
+
+    # было бэд, стало наверное гуд, классы будут из датасета браться, зачем они фабрике?
+    @abstractmethod
+    def get_classes(self) -> list[str]:
+        ...

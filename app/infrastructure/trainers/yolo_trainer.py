@@ -23,3 +23,7 @@ class YoloTrainer(IDetectorTrainer):
 
     def export(self, output_path: str) -> None:
         self.model.export(format="pt", file=output_path)
+
+    # йоло классы в таком виде не нужны
+    def get_classes(self) -> list[str]:
+        pass

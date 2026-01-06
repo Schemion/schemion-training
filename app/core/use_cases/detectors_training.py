@@ -49,12 +49,12 @@ class DetectorTrainingUseCase:
             trainer = self.trainer_factory.create(
                 architecture=model.architecture,
                 architecture_profile=model.architecture_profile,
-                classes=model.classes or [],
             )
 
             trainer.load_model(weights_path)
 
             logger.info(f"Task {task_id} - training started")
+            # TODO: очевидно надо класс который скачает этот датасет, а еще получит из него классы
             trainer.train(dataset_path)
 
             output_path = f"trained/{model.id}/model"
