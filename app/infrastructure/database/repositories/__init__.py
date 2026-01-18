@@ -1,2 +1,3 @@
 from .model_repository import ModelRepository
 from .task_repository import TaskRepository
+from .dataset_repository import DatasetRepository

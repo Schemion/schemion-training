@@ -1,3 +1,5 @@
 from .model_interface import IModelRepository
 from .task_interface import ITaskRepository
 from .storage_interface import IStorageRepository
+from .dataset_interface import IDatasetRepository
+from .dataset_loader_interface import IDatasetLoader

@@ -4,9 +4,11 @@ import logging
 
 from app.core.interfaces.detector_trainer_factory_interface import IDetectorTrainerFactory
 from app.core.interfaces.model_weights_loader_interface import IModelWeightsLoader
+from app.core.interfaces import IDatasetLoader
 from app.core.interfaces.storage_interface import IStorageRepository
 from app.core.interfaces.model_interface import IModelRepository
 from app.core.interfaces.task_interface import ITaskRepository
+from app.core.interfaces import IDatasetRepository
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +19,15 @@ class DetectorTrainingUseCase:
         self,
         storage: IStorageRepository,
         weights_loader: IModelWeightsLoader,
+        dataset_loader: IDatasetLoader,
         task_repo: ITaskRepository,
         model_repo: IModelRepository,
+        dataset_repo: IDatasetRepository,
         trainer_factory: IDetectorTrainerFactory,
     ):
         self.storage = storage
         self.weights_loader = weights_loader
+        self.dataset_loader = dataset_loader
         self.task_repo = task_repo
         self.model_repo = model_repo
         self.trainer_factory = trainer_factory
@@ -44,6 +49,12 @@ class DetectorTrainingUseCase:
             logger.info(f"Task {task_id} - downloading base weights")
             weights_path = self.weights_loader.load(model.minio_model_path)
 
+            dataset = self.dataset_repo.get_by_id(dataset_id)
+            if not dataset:
+                raise RuntimeError(f"Dataset {dataset_id} not found")
+
+            dataset_path = self.dataset_loader.load(dataset.minio_path)
+
             logger.info(f"Task {task_id} - creating trainer")
 
             trainer = self.trainer_factory.create(
@@ -55,7 +66,7 @@ class DetectorTrainingUseCase:
 
             logger.info(f"Task {task_id} - training started")
             # TODO: очевидно надо класс который скачает этот датасет, а еще получит из него классы
-            trainer.train(dataset_id)
+            trainer.train(dataset_path)
 
             output_path = f"trained/{model.id}/model"
             trainer.export(output_path)

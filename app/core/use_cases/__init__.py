@@ -1,1 +1,1 @@
-from .detectors_training import DetectorsTrainingUseCase
+from .detectors_training import DetectorTrainingUseCase
