@@ -30,6 +30,7 @@ class DetectorTrainingUseCase:
         self.dataset_loader = dataset_loader
         self.task_repo = task_repo
         self.model_repo = model_repo
+        self.dataset_repo = dataset_repo
         self.trainer_factory = trainer_factory
 
     def execute(self, message: dict) -> None:

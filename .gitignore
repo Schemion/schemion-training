@@ -19,3 +19,4 @@ build/
 .ipynb_checkpoints/
 
 *.log
+/runs/detect/yolo_custom/args.yaml

@@ -3,11 +3,10 @@ from typing import Optional
 from uuid import UUID
 
 
-from app.core import entities
-from sqlalchemy.orm import Session
+from app.core.entities import Dataset
 
 
 class IDatasetRepository(ABC):
     @abstractmethod
-    def get_by_id(self, db: Session, dataset_id: UUID, user_id: Optional[UUID] = None) -> Optional[entities.Dataset]:
+    def get_by_id(self,dataset_id: UUID, user_id: Optional[UUID] = None,) -> Optional[Dataset]:
         ...
