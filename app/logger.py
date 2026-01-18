@@ -14,6 +14,6 @@ def setup_logger():
     logger.handlers.clear()
     logger.addHandler(handler)
 
-    file_handler = logging.FileHandler('inference.log')
+    file_handler = logging.FileHandler('trainer.log')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)

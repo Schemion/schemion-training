@@ -30,7 +30,7 @@ class DetectorTrainingUseCase:
     def execute(self, message: dict) -> None:
         task_id = UUID(message["task_id"])
         model_id = UUID(message["model_id"])
-        dataset_path = message["dataset_path"]
+        dataset_id = message["dataset_id"]
 
         logger.info(f"Training task {task_id} started")
 
@@ -55,7 +55,7 @@ class DetectorTrainingUseCase:
 
             logger.info(f"Task {task_id} - training started")
             # TODO: очевидно надо класс который скачает этот датасет, а еще получит из него классы
-            trainer.train(dataset_path)
+            trainer.train(dataset_id)
 
             output_path = f"trained/{model.id}/model"
             trainer.export(output_path)
