@@ -2,19 +2,17 @@ from uuid import UUID
 from datetime import datetime, timezone
 import logging
 
+from app.core.interfaces import IDatasetLoader, IDatasetRepository
 from app.core.interfaces.detector_trainer_factory_interface import IDetectorTrainerFactory
 from app.core.interfaces.model_weights_loader_interface import IModelWeightsLoader
-from app.core.interfaces import IDatasetLoader
 from app.core.interfaces.storage_interface import IStorageRepository
 from app.core.interfaces.model_interface import IModelRepository
 from app.core.interfaces.task_interface import ITaskRepository
-from app.core.interfaces import IDatasetRepository
 
 logger = logging.getLogger(__name__)
 
 
 class DetectorTrainingUseCase:
-
     def __init__(
         self,
         storage: IStorageRepository,
@@ -34,6 +32,8 @@ class DetectorTrainingUseCase:
         self.trainer_factory = trainer_factory
 
     def execute(self, message: dict) -> None:
+        dataset_dir = None
+
         task_id = UUID(message["task_id"])
         model_id = UUID(message["model_id"])
         dataset_id = message["dataset_id"]
@@ -54,7 +54,7 @@ class DetectorTrainingUseCase:
             if not dataset:
                 raise RuntimeError(f"Dataset {dataset_id} not found")
 
-            dataset_path = self.dataset_loader.load(dataset.minio_path)
+            dataset_dir, dataset_yaml = self.dataset_loader.load(dataset.minio_path)
 
             logger.info(f"Task {task_id} - creating trainer")
 
@@ -67,7 +67,7 @@ class DetectorTrainingUseCase:
 
             logger.info(f"Task {task_id} - training started")
             # TODO: очевидно надо класс который скачает этот датасет, а еще получит из него классы
-            trainer.train(dataset_path)
+            trainer.train(dataset_yaml)
 
             output_path = f"trained/{model.id}/model"
             trainer.export(output_path)
@@ -85,3 +85,6 @@ class DetectorTrainingUseCase:
             task.error_msg = str(exc)
             task.updated_at = datetime.now(timezone.utc)
             self.task_repo.update(task)
+        finally:
+            if dataset_dir:
+                self.dataset_loader.delete(dataset_dir)

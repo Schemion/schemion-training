@@ -7,13 +7,13 @@ import yaml
 from app.core.interfaces.storage_interface import IStorageRepository
 from app.core.interfaces import IDatasetLoader
 
-#TODO: тут короче надо пути делать абсолютными и скорее всего весь проект заработает =)
+#TODO: Протестировать пути и для faster rcnn возможно yml не подойдет, так как в моем скрипте был .txt
 class DatasetLoader(IDatasetLoader):
     def __init__(self, storage: IStorageRepository, bucket: str):
         self.storage = storage
         self.bucket = bucket
 
-    def load(self, object_name: str) -> str:
+    def load(self, object_name: str) -> tuple[str, str]:
         dataset_dir = tempfile.mkdtemp(prefix="dataset_")
         zip_path = os.path.join(dataset_dir, "dataset.zip")
 
@@ -37,6 +37,7 @@ class DatasetLoader(IDatasetLoader):
                 break
 
         if not yaml_path:
+            shutil.rmtree(dataset_dir, ignore_errors=True)
             raise RuntimeError("Dataset yaml file not found")
 
         with open(yaml_path, "r", encoding="utf-8") as f:
@@ -54,7 +55,7 @@ class DatasetLoader(IDatasetLoader):
         with open(yaml_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, sort_keys=False)
 
-        return yaml_path
+        return dataset_dir, yaml_path
 
     def delete(self, dataset_dir: str) -> None:
         if os.path.exists(dataset_dir):
