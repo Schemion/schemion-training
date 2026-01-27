@@ -43,20 +43,35 @@ class DatasetLoader(IDatasetLoader):
         with open(yaml_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
-        yaml_parent = os.path.dirname(yaml_path)
+        yaml_dir = os.path.dirname(yaml_path)
 
-        data["path"] = yaml_parent
+        original_path = data.get("path")
+        dataset_root = yaml_dir
+
+        if isinstance(original_path, str):
+            candidate = os.path.join(yaml_dir, os.path.basename(original_path))
+            if os.path.isdir(candidate):
+                dataset_root = candidate
+
+        data["path"] = dataset_root
 
         for key in ("train", "val", "test"):
-            if key in data and isinstance(data[key], str):
-                if not os.path.isabs(data[key]):
-                    data[key] = os.path.join(yaml_parent, data[key])
+            if key not in data:
+                continue
+
+            value = data[key]
+
+            if os.path.isabs(value):
+                value = os.path.basename(value)
+
+            data[key] = value
 
         with open(yaml_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, sort_keys=False)
 
         return dataset_dir, yaml_path
 
-    def delete(self, dataset_dir: str) -> None:
+    @staticmethod
+    def delete(dataset_dir: str) -> None:
         if os.path.exists(dataset_dir):
             shutil.rmtree(dataset_dir)
