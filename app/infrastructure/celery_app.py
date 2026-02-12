@@ -7,6 +7,7 @@ celery_app = Celery(
     backend=settings.REDIS_BROKER_URL
 )
 
+celery_app.conf.task_default_queue = "training_queue"
 celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
@@ -14,3 +15,4 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
 )
+import app.infrastructure.tasks.training

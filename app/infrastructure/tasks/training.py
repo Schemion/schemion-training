@@ -1,5 +1,5 @@
 from app.core.use_cases.detectors_training import DetectorTrainingUseCase
-from app.infrastructure.celety_app import celery_app
+from app.infrastructure.celery_app import celery_app
 from app.infrastructure.cloud_storage import MinioStorage
 from app.infrastructure.database.repositories import DatasetRepository
 from app.infrastructure.database.repositories.model_repository import ModelRepository
@@ -10,8 +10,8 @@ from app.infrastructure.services.model_weights_loader_service import ModelWeight
 from app.database import SessionLocal
 from app.dependencies import get_detector_trainer_factory
 
-@celery_app.task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
-def process_inference_task(message: dict):
+@celery_app.task(bind=False, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
+def process_training_task(message: dict):
     storage = MinioStorage(
         endpoint=settings.MINIO_ENDPOINT,
         access_key=settings.MINIO_ACCESS_KEY,
