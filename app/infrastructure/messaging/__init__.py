@@ -1,1 +1,0 @@
-from .rabbitmq_listener import RabbitMQListener

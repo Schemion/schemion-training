@@ -53,3 +53,4 @@ ultralytics==8.3.237
 ultralytics-thop==2.0.18
 urllib3==2.5.0
 yarl==1.22.0
+celery
