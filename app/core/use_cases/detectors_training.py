@@ -66,7 +66,7 @@ class DetectorTrainingUseCase:
             trainer.load_model(weights_path)
 
             logger.info(f"Task {task_id} - training started")
-            # TODO: очевидно надо класс который скачает этот датасет, а еще получит из него классы
+
             trainer.train(dataset_yaml)
 
             output_path = f"trained/{model.id}/model"
