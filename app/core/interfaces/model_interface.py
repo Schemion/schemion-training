@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
 
-from app.core.entities.model import Model
+from app.infrastructure.database.models import Model
 
 
 class IModelRepository(ABC):

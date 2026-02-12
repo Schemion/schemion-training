@@ -48,7 +48,7 @@ class DetectorTrainingUseCase:
                 raise RuntimeError("Only system models can be fine-tuned")
 
             logger.info(f"Task {task_id} - downloading base weights")
-            weights_path = self.weights_loader.load(model.minio_model_path)
+            weights_path = self.weights_loader.load(str(model.minio_model_path))
 
             dataset = self.dataset_repo.get_by_id(dataset_id)
             if not dataset:
@@ -59,8 +59,8 @@ class DetectorTrainingUseCase:
             logger.info(f"Task {task_id} - creating trainer")
 
             trainer = self.trainer_factory.create(
-                architecture=model.architecture,
-                architecture_profile=model.architecture_profile,
+                architecture=str(model.architecture),
+                architecture_profile=str(model.architecture_profile),
             )
 
             trainer.load_model(weights_path)

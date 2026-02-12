@@ -6,8 +6,8 @@ class QueueTypes(str, Enum):
     training_queue_result = "training_queue_result"
 
 
-class ModelStatus(str, Enum):
-    pending = "pending"
-    training = "training"
-    completed = "completed"
+class TaskStatus(str, Enum):
+    queued = "queued"
+    running = "running"
+    succeeded = "succeeded"
     failed = "failed"
