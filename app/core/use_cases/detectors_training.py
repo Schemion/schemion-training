@@ -2,6 +2,7 @@ from uuid import UUID
 from datetime import datetime, timezone
 import logging
 
+from app.core.enums import TaskStatus
 from app.core.interfaces import IDatasetLoader, IDatasetRepository
 from app.core.interfaces.detector_trainer_factory_interface import IDetectorTrainerFactory
 from app.core.interfaces.model_weights_loader_interface import IModelWeightsLoader
@@ -42,6 +43,8 @@ class DetectorTrainingUseCase:
 
         task = self.task_repo.get_by_id(task_id)
         model = self.model_repo.get_by_id(model_id)
+        
+        task.status = TaskStatus.running.value
 
         try:
             if not model.is_system:
@@ -74,6 +77,7 @@ class DetectorTrainingUseCase:
 
             task.output_path = output_path
             task.updated_at = datetime.now(timezone.utc)
+            task.status = TaskStatus.succeeded.value
             self.task_repo.update(task)
 
             logger.info(f"Training task {task_id} finished successfully")
@@ -84,6 +88,7 @@ class DetectorTrainingUseCase:
             logger.exception(f"Task {task_id} - training failed")
             task.error_msg = str(exc)
             task.updated_at = datetime.now(timezone.utc)
+            task.status = TaskStatus.failed.value
             self.task_repo.update(task)
         finally:
             if dataset_dir:
