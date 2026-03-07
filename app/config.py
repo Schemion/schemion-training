@@ -5,6 +5,7 @@ load_dotenv()
 
 class Settings:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://admin:admin@database:5432/schemion")
+    REDIS_BROKER_URL: str = os.getenv("REDIS_BROKER_URL", "redis://:adminpass@redis:6379/1")
     RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://admin:admin@rabbitmq:5672/")
     MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "minio:9000")
     MINIO_PUBLIC_ENDPOINT: str = os.getenv("MINIO_PUBLIC_ENDPOINT", "files.localhost")

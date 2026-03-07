@@ -2,7 +2,7 @@ from sqlalchemy import Enum, UUID, String, Text, DateTime, func
 from sqlalchemy.orm import mapped_column, Mapped
 from datetime import datetime
 from app.core.enums import TaskStatus
-from app.infrastructure.database.models import Base
+from app.infrastructure.database.models.base import Base
 
 
 class Task(Base):
