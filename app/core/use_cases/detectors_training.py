@@ -1,6 +1,7 @@
 from uuid import UUID
 from datetime import datetime, timezone
 import logging
+import os
 
 from app.core.enums import TaskStatus
 from app.core.interfaces import IDatasetLoader, IDatasetRepository
@@ -93,3 +94,5 @@ class DetectorTrainingUseCase:
         finally:
             if dataset_dir:
                 self.dataset_loader.delete(dataset_dir)
+            if weights_path and os.path.exists(weights_path):
+                self.weights_loader.delete(weights_path)

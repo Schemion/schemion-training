@@ -17,15 +17,15 @@ def process_training_task(message: dict):
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY
     )
-
-    db = SessionLocal()
-
-    task_repository = TaskRepository(db)
-    model_repository = ModelRepository(db)
-    dataset_repository = DatasetRepository(db)
-    weights_loader = ModelWeightsLoader(storage=storage, bucket=settings.MINIO_MODELS_BUCKET)
-    dataset_loader = DatasetLoader(storage=storage, bucket=settings.MINIO_DATASETS_BUCKET)
-    trainer_factory = get_detector_trainer_factory()
+    
+    with SessionLocal() as db:
+        db = SessionLocal()
+        task_repository = TaskRepository(db)
+        model_repository = ModelRepository(db)
+        dataset_repository = DatasetRepository(db)
+        weights_loader = ModelWeightsLoader(storage=storage, bucket=settings.MINIO_MODELS_BUCKET)
+        dataset_loader = DatasetLoader(storage=storage, bucket=settings.MINIO_DATASETS_BUCKET)
+        trainer_factory = get_detector_trainer_factory()
 
     use_case = DetectorTrainingUseCase(storage=storage, weights_loader=weights_loader, task_repo=task_repository,
                                        model_repo=model_repository, trainer_factory=trainer_factory,
