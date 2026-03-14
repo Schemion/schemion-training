@@ -11,6 +11,7 @@ from app.core.interfaces.model_weights_loader_interface import IModelWeightsLoad
 from app.core.interfaces.storage_interface import IStorageRepository
 from app.core.interfaces.model_interface import IModelRepository
 from app.core.interfaces.task_interface import ITaskRepository
+from app.infrastructure.database.models.model import Model
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class DetectorTrainingUseCase:
 
     def execute(self, message: dict) -> None:
         dataset_dir = None
+        weights_path = None
 
         task_id = UUID(message["task_id"])
         model_id = UUID(message["model_id"])
@@ -95,6 +97,20 @@ class DetectorTrainingUseCase:
             task.updated_at = datetime.now(timezone.utc)
             task.status = TaskStatus.succeeded.value
             self.task_repo.update(task)
+            
+            new_model = Model(
+                name=f"{model.name}_fine_tuned",
+                architecture=model.architecture,
+                architecture_profile=model.architecture_profile,
+                classes=model.classes,
+                minio_model_path=minio_object_name,
+                user_id=None, # TODO: добавить user_id в сообщение и сохранять
+                is_system=False,
+                base_model_id=model.id,
+                dataset_id=dataset.id
+            )
+
+            self.model_repo.upload_model(new_model)
 
             logger.info(f"Training task {task_id} finished successfully")
 

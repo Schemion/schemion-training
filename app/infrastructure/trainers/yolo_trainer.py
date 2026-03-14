@@ -1,4 +1,5 @@
 import os
+import uuid
 from contextlib import contextmanager
 
 from ultralytics import YOLO
@@ -30,15 +31,22 @@ class YoloTrainer(IDetectorTrainer):
         with _chdir(yaml_parent):
             return self.model.train(
                 data=os.path.abspath(dataset_yaml_path),
-                epochs=50,
+                epochs=1, # для теста, потом поставлю от 10 до 50
                 imgsz=640,
-                batch=16,
+                batch=4,
                 name="yolo_custom",
+                workers=0,
+                device="cpu", # на время теста мой докер не использует гпу
+                deterministic=True,
                 exist_ok=True
             )
 
     def export(self, output_path: str) -> None:
-        self.model.export(format="pt", file=output_path)
+        if os.path.isfile(output_path):
+            os.remove(output_path)
+        os.makedirs(output_path, exist_ok=True)
+        model_file_path = os.path.join(output_path, f"model_{uuid.uuid4().hex}.pt")
+        self.model.save(model_file_path)
 
     # йоло классы в таком виде не нужны
     def get_classes(self) -> list[str]:
