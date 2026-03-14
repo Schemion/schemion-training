@@ -13,6 +13,19 @@ class DatasetLoader(IDatasetLoader):
         self.storage = storage
         self.bucket = bucket
 
+    def _load_yaml_safe(self, yaml_path: str) -> dict:
+        with open(yaml_path, "rb") as f:
+            raw = f.read()
+
+        for enc in ("utf-8-sig", "utf-8", "cp1251", "latin-1"):
+            try:
+                text = raw.decode(enc)
+                return yaml.safe_load(text) or {}
+            except Exception:
+                continue
+
+        raise RuntimeError(f"Cannot decode YAML file: {yaml_path}")
+
     def load(self, object_name: str) -> tuple[str, str]:
         dataset_dir = tempfile.mkdtemp(prefix="dataset_")
         zip_path = os.path.join(dataset_dir, "dataset.zip")
@@ -40,8 +53,7 @@ class DatasetLoader(IDatasetLoader):
             shutil.rmtree(dataset_dir, ignore_errors=True)
             raise RuntimeError("Dataset yaml file not found")
 
-        with open(yaml_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
+        data = self._load_yaml_safe(yaml_path)
 
         yaml_dir = os.path.dirname(yaml_path)
 
