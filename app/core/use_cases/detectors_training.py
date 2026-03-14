@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import logging
 import os
 
+from app.config import settings
 from app.core.enums import TaskStatus
 from app.core.interfaces import IDatasetLoader, IDatasetRepository
 from app.core.interfaces.detector_trainer_factory_interface import IDetectorTrainerFactory
@@ -75,8 +76,22 @@ class DetectorTrainingUseCase:
 
             output_path = f"trained/{model.id}/model"
             trainer.export(output_path)
+            
+            model_files = [f for f in os.listdir(output_path) if f.endswith('.pt')]
+            if not model_files:
+                raise RuntimeError(f"No model file found in {output_path}")
 
-            task.output_path = output_path
+            model_file_path = os.path.join(output_path, model_files[0])
+
+            with open(model_file_path, "rb") as f:
+                minio_object_name = self.storage.upload_file(
+                    file_data=f.read(),
+                    filename=os.path.basename(model_file_path),
+                    content_type="application/octet-stream",
+                    bucket=settings.MINIO_MODELS_BUCKET
+                )
+
+            task.output_path = minio_object_name
             task.updated_at = datetime.now(timezone.utc)
             task.status = TaskStatus.succeeded.value
             self.task_repo.update(task)
