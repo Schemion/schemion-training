@@ -41,7 +41,7 @@ class DetectorTrainingUseCase:
 
         task_id = UUID(message["task_id"])
         model_id = UUID(message["model_id"])
-        dataset_id = message["dataset_id"]
+        dataset_id = UUID(message["dataset_id"])
 
         logger.info(f"Training task {task_id} started")
 
@@ -104,7 +104,7 @@ class DetectorTrainingUseCase:
                 architecture_profile=model.architecture_profile,
                 classes=model.classes,
                 minio_model_path=minio_object_name,
-                user_id=None, # TODO: добавить user_id в сообщение и сохранять
+                user_id=task.user_id,
                 is_system=False,
                 base_model_id=model.id,
                 dataset_id=dataset.id
