@@ -55,3 +55,4 @@ urllib3==2.5.0
 yarl==1.22.0
 celery
 redis==7.1.0
+bobber @ git+https://github.com/Schemion/bobber-lib.git@a8a30cb0fb75792f89cf03fc55a2acec18f79f87
