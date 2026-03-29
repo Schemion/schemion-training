@@ -19,3 +19,7 @@ class IDetectorTrainer(ABC):
     @abstractmethod
     def get_classes(self) -> list[str]:
         ...
+
+    @abstractmethod
+    def get_metrics(self) -> list[dict]:
+        ...

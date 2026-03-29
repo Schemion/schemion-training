@@ -14,6 +14,7 @@ class Settings:
     MINIO_SCHEMAS_BUCKET: str = os.getenv("MINIO_SCHEMAS_BUCKET", "schemas-images")
     MINIO_MODELS_BUCKET: str = os.getenv("MINIO_MODELS_BUCKET", "models")
     MINIO_DATASETS_BUCKET: str = os.getenv("MINIO_DATASETS_BUCKET", "datasets")
+    MINIO_METRICS_BUCKET: str = os.getenv("MINIO_METRICS_BUCKET", "metrics")
     BOBBER_HOST: str = os.getenv("BOBBER_HOST", "bob-the-broker")
     BOBBER_PORT: int = int(os.getenv("BOBBER_PORT", 50051))
 

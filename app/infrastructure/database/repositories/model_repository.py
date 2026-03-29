@@ -20,3 +20,28 @@ class ModelRepository(IModelRepository):
         self.db.commit()
         self.db.refresh(model)
         return model
+    
+    def update_model_by_id(self, model_id: UUID, data: dict) -> Model:
+        model = self.db.query(Model).filter(Model.id == model_id).first()
+        if model is None:
+            raise ValueError(f"Model with id {model_id} not found")
+
+        allowed_fields = {
+            "name",
+            "architecture",
+            "architecture_profile",
+            "classes",
+            "minio_model_path",
+            "metrics_path",
+            "base_model_id",
+            "dataset_id",
+        }
+
+        for key, value in data.items():
+            if key not in allowed_fields:
+                raise ValueError(f"Field '{key}' is not allowed for update")
+            setattr(model, key, value)
+
+        self.db.commit()
+        self.db.refresh(model)
+        return model

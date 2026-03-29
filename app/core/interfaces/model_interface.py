@@ -13,3 +13,7 @@ class IModelRepository(ABC):
     @abstractmethod
     def upload_model(self, model: Model) -> Model:
         ...
+        
+    @abstractmethod
+    def update_model_by_id(self, model_id: UUID, data: dict) -> Model:
+        ...

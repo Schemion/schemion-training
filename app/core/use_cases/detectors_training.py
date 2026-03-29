@@ -2,6 +2,7 @@ from uuid import UUID
 from datetime import datetime, timezone
 import logging
 import os
+import json
 
 from app.config import settings
 from app.core.enums import TaskStatus
@@ -43,6 +44,7 @@ class DetectorTrainingUseCase:
         model_id = UUID(message["model_id"])
         dataset_id = UUID(message["dataset_id"])
 
+        started_at = datetime.now(timezone.utc)
         logger.info(f"Training task {task_id} started")
 
         task = self.task_repo.get_by_id(task_id)
@@ -75,6 +77,26 @@ class DetectorTrainingUseCase:
             logger.info(f"Task {task_id} - training started")
 
             trainer.train(dataset_yaml)
+
+            try:
+                metrics_payload = {
+                    "run_id": str(task_id),
+                    "model_id": str(model_id),
+                    "started_at": started_at.isoformat().replace("+00:00", "Z"),
+                    "epochs": trainer.get_metrics(),
+                }
+                metrics_bytes = json.dumps(metrics_payload, ensure_ascii=False).encode("utf-8")
+                metrics_path = self.storage.upload_file(
+                    file_data=metrics_bytes,
+                    filename=f"metrics_{task_id}.json",
+                    content_type="application/json",
+                    bucket=settings.MINIO_METRICS_BUCKET,
+                )
+                
+                self.model_repo.update_model_by_id(model_id, {"metrics_path": metrics_path})
+                
+            except Exception:
+                logger.exception("Task %s - metrics upload failed", task_id)
 
             output_path = f"trained/{model.id}/model"
             trainer.export(output_path)
