@@ -27,7 +27,7 @@ class YoloTrainer(IDetectorTrainer):
     def load_model(self, weights_path: str) -> None:
         self.model = YOLO(weights_path)
 
-    def _pick_float(row: dict, keys: list[str]) -> float | None:
+    def _pick_float(self, row: dict, keys: list[str]) -> float | None:
         for key in keys:
             value = row.get(key)
             if value not in (None, ""):
@@ -63,12 +63,12 @@ class YoloTrainer(IDetectorTrainer):
         with _chdir(yaml_parent):
             result = self.model.train(
                 data=os.path.abspath(dataset_yaml_path),
-                epochs=1, # для теста, потом поставлю от 10 до 50
+                epochs=10, # для теста, потом поставлю от 10 до 50
                 imgsz=640,
                 batch=4,
                 name="yolo_custom",
                 workers=0,
-                device="cpu", # на время теста мой докер не использует гпу
+                device="cuda", # на время теста мой докер не использует гпу
                 deterministic=True,
                 exist_ok=True
             )
