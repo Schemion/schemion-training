@@ -49,11 +49,19 @@ class YoloTrainer(IDetectorTrainer):
                 except (KeyError, TypeError, ValueError):
                     continue
 
-                loss = self._pick_float(row, ["val/box_loss", "train/box_loss", "val/loss", "train/loss"])
-                acc = self._pick_float(row, ["metrics/mAP50-95(B)", "metrics/mAP50(B)", "metrics/precision(B)", "metrics/recall(B)"])
+                record = {"epoch": epoch}
+                for key, value in row.items():
+                    if key == "epoch":
+                        continue
+                    if value in (None, ""):
+                        continue
+                    try:
+                        record[key] = float(value)
+                    except ValueError:
+                        continue
 
-                if loss is not None or acc is not None:
-                    metrics.append({"epoch": epoch, "loss": loss, "acc": acc})
+                if len(record) > 1:
+                    metrics.append(record)
 
         return metrics
 

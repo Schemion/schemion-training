@@ -39,6 +39,7 @@ class DetectorTrainingUseCase:
     def execute(self, message: dict) -> None:
         dataset_dir = None
         weights_path = None
+        metrics_path = None
 
         task_id = UUID(message["task_id"])
         model_id = UUID(message["model_id"])
@@ -92,9 +93,6 @@ class DetectorTrainingUseCase:
                     content_type="application/json",
                     bucket=settings.MINIO_METRICS_BUCKET,
                 )
-                
-                self.model_repo.update_model_by_id(model_id, {"metrics_path": metrics_path})
-                
             except Exception:
                 logger.exception("Task %s - metrics upload failed", task_id)
 
@@ -126,6 +124,7 @@ class DetectorTrainingUseCase:
                 architecture_profile=model.architecture_profile,
                 classes=model.classes,
                 minio_model_path=minio_object_name,
+                metrics_path=metrics_path,
                 user_id=task.user_id,
                 is_system=False,
                 base_model_id=model.id,
