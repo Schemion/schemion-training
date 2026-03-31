@@ -40,6 +40,9 @@ class DetectorTrainingUseCase:
         dataset_dir = None
         weights_path = None
         metrics_path = None
+        image_size = int(message.get("image_size")) if message.get("image_size") is not None else None
+        epochs = int(message.get("epochs")) if message.get("epochs") is not None else None
+        name = str(message.get("name")) if message.get("name") is not None else None
 
         task_id = UUID(message["task_id"])
         model_id = UUID(message["model_id"])
@@ -77,7 +80,7 @@ class DetectorTrainingUseCase:
 
             logger.info(f"Task {task_id} - training started")
 
-            trainer.train(dataset_yaml)
+            trainer.train(dataset_yaml, image_size=image_size, epochs=epochs, name=name)
 
             try:
                 metrics_payload = {

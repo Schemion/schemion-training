@@ -8,7 +8,7 @@ class IDetectorTrainer(ABC):
         ...
 
     @abstractmethod
-    def train(self, dataset_path: str) -> Any:
+    def train(self, dataset_path: str, image_size: int | None = None, epochs: int | None = None, name: str | None = None) -> Any:
         ...
 
     @abstractmethod

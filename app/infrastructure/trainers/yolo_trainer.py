@@ -65,18 +65,21 @@ class YoloTrainer(IDetectorTrainer):
 
         return metrics
 
-    def train(self, dataset_yaml_path: str):
+    def train(self, dataset_yaml_path: str, image_size: int | None = None, epochs: int | None = None, name: str | None = None):
         yaml_parent = os.path.dirname(os.path.abspath(dataset_yaml_path))
 
         with _chdir(yaml_parent):
+            epochs_val = epochs if epochs is not None else 10
+            image_size_val = image_size if image_size is not None else 640
+            name_val = name if name else "yolo_custom"
             result = self.model.train(
                 data=os.path.abspath(dataset_yaml_path),
-                epochs=10, # для теста, потом поставлю от 10 до 50
-                imgsz=640,
+                epochs=epochs_val,
+                imgsz=image_size_val,
                 batch=4,
-                name="yolo_custom",
-                workers=0,
-                device="cuda", # на время теста мой докер не использует гпу
+                name=name_val,
+                workers=4,
+                device="cuda",
                 deterministic=True,
                 exist_ok=True
             )
@@ -84,7 +87,7 @@ class YoloTrainer(IDetectorTrainer):
             if save_dir:
                 results_csv = os.path.join(str(save_dir), "results.csv")
             else:
-                results_csv = os.path.join(os.getcwd(), "runs", "detect", "yolo_custom", "results.csv")
+                results_csv = os.path.join(os.getcwd(), "runs", "detect", name_val, "results.csv")
             self._last_metrics = self._parse_metrics_csv(results_csv)
             return result
 
@@ -101,3 +104,4 @@ class YoloTrainer(IDetectorTrainer):
 
     def get_metrics(self) -> list[dict]:
         return list(self._last_metrics)
+
