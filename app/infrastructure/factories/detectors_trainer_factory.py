@@ -1,6 +1,8 @@
 from app.core.interfaces.detector_trainer_factory_interface import IDetectorTrainerFactory
 from app.core.interfaces.detector_trainer_interface import IDetectorTrainer
+from app.infrastructure.models_config import ARCHITECTURE_ALIASES
 from app.infrastructure.trainers.yolo_trainer import YoloTrainer
+from app.infrastructure.trainers.fasterrcnn_trainer import FasterRCNNTrainer
 
 
 class DetectorTrainerFactory(IDetectorTrainerFactory):
@@ -10,5 +12,7 @@ class DetectorTrainerFactory(IDetectorTrainerFactory):
 
         if architecture == "yolo":
             return YoloTrainer(architecture_profile=architecture_profile)
+        if architecture in ARCHITECTURE_ALIASES:
+            return FasterRCNNTrainer(architecture_profile=architecture_profile)
 
         raise ValueError(f"Unsupported architecture: {architecture}")
