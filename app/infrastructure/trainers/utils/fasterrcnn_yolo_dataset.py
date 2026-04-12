@@ -1,8 +1,10 @@
 import os
+from typing import Any
+from PIL import Image
 
 import torch
 from torch.utils.data import Dataset
-
+from torchvision.transforms import functional as F
 
 class FasterRCNNYoloDataset(Dataset):
     def __init__(self, images_dir: str, labels_dir: str, class_names: list[str]):
@@ -24,6 +26,28 @@ class FasterRCNNYoloDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.image_paths)
+    
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, dict[str, Any]]:
+        image_path = self.image_paths[idx]
+        base = os.path.splitext(os.path.basename(image_path))[0]
+        label_path = os.path.join(self.labels_dir, f"{base}.txt")
+
+        image = Image.open(image_path).convert("RGB")
+        img_w, img_h = image.size
+        boxes, labels = self._load_labels(label_path, img_w, img_h)
+
+        target: dict[str, Any] = {}
+        target["boxes"] = boxes
+        target["labels"] = labels
+        target["image_id"] = torch.tensor([idx], dtype=torch.int64)
+        if boxes.numel() > 0:
+            area = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+        else:
+            area = torch.zeros((0,), dtype=torch.float32)
+        target["area"] = area
+        target["iscrowd"] = torch.zeros((len(labels),), dtype=torch.int64)
+
+        return F.to_tensor(image), target
 
     def _load_labels(self, label_path: str, img_w: int, img_h: int) -> tuple[torch.Tensor, torch.Tensor]:
         if not os.path.isfile(label_path):
@@ -65,3 +89,8 @@ class FasterRCNNYoloDataset(Dataset):
 
                 boxes.append([x1, y1, x2, y2])
                 labels.append(class_id + 1)
+
+                if len(boxes) == 0:
+                    return torch.zeros((0, 4), dtype=torch.float32), torch.zeros((0,), dtype=torch.int64)
+
+                return torch.tensor(boxes, dtype=torch.float32), torch.tensor(labels, dtype=torch.int64)

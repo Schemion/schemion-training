@@ -64,6 +64,7 @@ class FasterRCNNTrainer(IDetectorTrainer):
             elif "state_dict" in state:
                 state = state["state_dict"]
         if isinstance(state, dict):
+            state = {k: v for k, v in state.items() if not k.startswith("roi_heads.box_predictor.")}
             self.model.load_state_dict(state, strict=False)
 
     def _build_model(self, num_classes: int, image_size: int | None) -> torch.nn.Module:
@@ -84,6 +85,7 @@ class FasterRCNNTrainer(IDetectorTrainer):
             elif "state_dict" in state:
                 state = state["state_dict"]
         if isinstance(state, dict):
+            state = {k: v for k, v in state.items() if not k.startswith("roi_heads.box_predictor.")}
             self.model.load_state_dict(state, strict=False)
 
     def train(self, dataset_path: str, image_size: int | None = None, epochs: int | None = None, name: str | None = None):
@@ -113,7 +115,7 @@ class FasterRCNNTrainer(IDetectorTrainer):
         train_dataset = FasterRCNNYoloDataset(train_images, train_labels, self._class_names)
         val_dataset = FasterRCNNYoloDataset(val_images, val_labels, self._class_names)
 
-        train_loader = DataLoader( train_dataset, batch_size=2,  shuffle=True, num_workers=4, collate_fn=_collate_fn,)
+        train_loader = DataLoader( train_dataset, batch_size=2,  shuffle=True, num_workers=0, collate_fn=_collate_fn,)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self._build_model(num_classes=num_classes, image_size=image_size)

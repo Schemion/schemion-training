@@ -21,3 +21,4 @@ ARCHITECTURE_ALIASES = {
     "fpn": "resnet50_fpn",
     "fpnv2": "resnet50_fpn_v2",
 }
+

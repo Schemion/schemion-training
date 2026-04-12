@@ -102,7 +102,7 @@ class DetectorTrainingUseCase:
             output_path = f"trained/{model.id}/model"
             trainer.export(output_path)
             
-            model_files = [f for f in os.listdir(output_path) if f.endswith('.pt')]
+            model_files = [f for f in os.listdir(output_path) if f.endswith('.pt') or f.endswith('.pth')]
             if not model_files:
                 raise RuntimeError(f"No model file found in {output_path}")
 
