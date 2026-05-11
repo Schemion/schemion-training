@@ -11,7 +11,6 @@ from app.core.interfaces.detector_trainer_factory_interface import IDetectorTrai
 from app.core.interfaces.model_weights_loader_interface import IModelWeightsLoader
 from app.core.interfaces.storage_interface import IStorageRepository
 from app.core.interfaces.model_interface import IModelRepository
-from app.core.interfaces.task_interface import ITaskRepository
 from app.infrastructure.database.models.model import Model
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,6 @@ class DetectorTrainingUseCase:
         storage: IStorageRepository,
         weights_loader: IModelWeightsLoader,
         dataset_loader: IDatasetLoader,
-        task_repo: ITaskRepository,
         model_repo: IModelRepository,
         dataset_repo: IDatasetRepository,
         trainer_factory: IDetectorTrainerFactory,
@@ -31,32 +29,33 @@ class DetectorTrainingUseCase:
         self.storage = storage
         self.weights_loader = weights_loader
         self.dataset_loader = dataset_loader
-        self.task_repo = task_repo
         self.model_repo = model_repo
         self.dataset_repo = dataset_repo
         self.trainer_factory = trainer_factory
 
-    def execute(self, message: dict) -> None:
+    def execute(self, message: dict) -> dict:
         dataset_dir = None
         weights_path = None
         metrics_path = None
-        image_size = int(message.get("image_size")) if message.get("image_size") is not None else None
-        epochs = int(message.get("epochs")) if message.get("epochs") is not None else None
-        name = str(message.get("name")) if message.get("name") is not None else None
-
-        task_id = UUID(message["task_id"])
-        model_id = UUID(message["model_id"])
-        dataset_id = UUID(message["dataset_id"])
-
-        started_at = datetime.now(timezone.utc)
-        logger.info(f"Training task {task_id} started")
-
-        task = self.task_repo.get_by_id(task_id)
-        model = self.model_repo.get_by_id(model_id)
-        
-        task.status = TaskStatus.running.value
+        task_id_raw = str(message["task_id"])
 
         try:
+            image_size = int(message.get("image_size")) if message.get("image_size") is not None else None
+            epochs = int(message.get("epochs")) if message.get("epochs") is not None else None
+            name = str(message.get("name")) if message.get("name") is not None else None
+
+            task_id = UUID(task_id_raw)
+            model_id = UUID(message["model_id"])
+            dataset_id = UUID(message["dataset_id"])
+            user_id = UUID(message["user_id"])
+
+            started_at = datetime.now(timezone.utc)
+            logger.info(f"Training task {task_id} started")
+
+            model = self.model_repo.get_by_id(model_id)
+            if not model:
+                raise RuntimeError(f"Model {model_id} not found")
+
             if not model.is_system:
                 raise RuntimeError("Only system models can be fine-tuned")
 
@@ -116,11 +115,6 @@ class DetectorTrainingUseCase:
                     bucket=settings.MINIO_MODELS_BUCKET
                 )
 
-            task.output_path = minio_object_name
-            task.updated_at = datetime.now(timezone.utc)
-            task.status = TaskStatus.succeeded.value
-            self.task_repo.update(task)
-            
             new_model = Model(
                 name=f"{model.name}_fine_tuned",
                 architecture=model.architecture,
@@ -128,7 +122,7 @@ class DetectorTrainingUseCase:
                 classes=model.classes,
                 minio_model_path=minio_object_name,
                 metrics_path=metrics_path,
-                user_id=task.user_id,
+                user_id=user_id,
                 is_system=False,
                 base_model_id=model.id,
                 dataset_id=dataset.id
@@ -138,16 +132,37 @@ class DetectorTrainingUseCase:
 
             logger.info(f"Training task {task_id} finished successfully")
 
-            self.weights_loader.delete(weights_path)
+            return self._status_update(
+                task_id=task_id_raw,
+                status=TaskStatus.succeeded,
+                output_path=minio_object_name,
+            )
 
         except Exception as exc:
-            logger.exception(f"Task {task_id} - training failed")
-            task.error_msg = str(exc)
-            task.updated_at = datetime.now(timezone.utc)
-            task.status = TaskStatus.failed.value
-            self.task_repo.update(task)
+            logger.exception(f"Task {task_id_raw} - training failed")
+            return self._status_update(
+                task_id=task_id_raw,
+                status=TaskStatus.failed,
+                error_msg=str(exc),
+            )
         finally:
             if dataset_dir:
                 self.dataset_loader.delete(dataset_dir)
             if weights_path and os.path.exists(weights_path):
                 self.weights_loader.delete(weights_path)
+
+    @staticmethod
+    def _status_update(
+        task_id: str,
+        status: TaskStatus,
+        output_path: str | None = None,
+        error_msg: str | None = None,
+    ) -> dict:
+        return {
+            "task_id": task_id,
+            "task_type": "training",
+            "status": status.value,
+            "output_path": output_path,
+            "error_msg": error_msg,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }

@@ -7,31 +7,24 @@ from app.core.enums import TaskStatus
 from app.core.use_cases.detectors_training import DetectorTrainingUseCase
 
 
-def _build_message(task_id, model_id, dataset_id, image_size=640, epochs=3, name="exp"):
+def _build_message(task_id, model_id, dataset_id, user_id, image_size=640, epochs=3, name="exp"):
     return {
         "task_id": str(task_id),
         "model_id": str(model_id),
         "dataset_id": str(dataset_id),
+        "user_id": str(user_id),
         "image_size": image_size,
         "epochs": epochs,
         "name": name,
     }
 
 
-def test_execute_successful_training_uploads_model_and_updates_task(tmp_path, monkeypatch):
+def test_execute_successful_training_uploads_model_and_returns_status(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     task_id = uuid4()
     model_id = uuid4()
     dataset_id = uuid4()
-
-    task = SimpleNamespace(
-        id=task_id,
-        user_id=uuid4(),
-        status=TaskStatus.queued.value,
-        output_path=None,
-        error_msg=None,
-        updated_at=None,
-    )
+    user_id = uuid4()
     model = SimpleNamespace(
         id=model_id,
         name="base_model",
@@ -80,9 +73,6 @@ def test_execute_successful_training_uploads_model_and_updates_task(tmp_path, mo
     trainer_factory = MagicMock()
     trainer_factory.create.return_value = trainer
 
-    task_repo = MagicMock()
-    task_repo.get_by_id.return_value = task
-
     model_repo = MagicMock()
     model_repo.get_by_id.return_value = model
 
@@ -93,18 +83,18 @@ def test_execute_successful_training_uploads_model_and_updates_task(tmp_path, mo
         storage=storage,
         weights_loader=weights_loader,
         dataset_loader=dataset_loader,
-        task_repo=task_repo,
         model_repo=model_repo,
         dataset_repo=dataset_repo,
         trainer_factory=trainer_factory,
     )
 
-    use_case.execute(_build_message(task_id, model_id, dataset_id))
+    result = use_case.execute(_build_message(task_id, model_id, dataset_id, user_id))
 
-    assert task.status == TaskStatus.succeeded.value
-    assert task.error_msg is None
-    assert task.output_path == "models/final.pt"
-    assert task_repo.update.call_count == 1
+    assert result["task_id"] == str(task_id)
+    assert result["task_type"] == "training"
+    assert result["status"] == TaskStatus.succeeded.value
+    assert result["error_msg"] is None
+    assert result["output_path"] == "models/final.pt"
 
     trainer_factory.create.assert_called_once_with(
         architecture="yolo",
@@ -119,6 +109,7 @@ def test_execute_successful_training_uploads_model_and_updates_task(tmp_path, mo
     assert uploaded_model.base_model_id == model.id
     assert uploaded_model.dataset_id == dataset.id
     assert uploaded_model.metrics_path == "metrics/metrics.json"
+    assert uploaded_model.user_id == user_id
     assert uploaded_model.is_system is False
 
 
@@ -126,15 +117,7 @@ def test_execute_fails_when_model_is_not_system():
     task_id = uuid4()
     model_id = uuid4()
     dataset_id = uuid4()
-
-    task = SimpleNamespace(
-        id=task_id,
-        user_id=uuid4(),
-        status=TaskStatus.queued.value,
-        output_path=None,
-        error_msg=None,
-        updated_at=None,
-    )
+    user_id = uuid4()
     model = SimpleNamespace(
         id=model_id,
         name="custom_model",
@@ -149,17 +132,16 @@ def test_execute_fails_when_model_is_not_system():
         storage=MagicMock(),
         weights_loader=MagicMock(),
         dataset_loader=MagicMock(),
-        task_repo=MagicMock(get_by_id=MagicMock(return_value=task)),
         model_repo=MagicMock(get_by_id=MagicMock(return_value=model)),
         dataset_repo=MagicMock(),
         trainer_factory=MagicMock(),
     )
 
-    use_case.execute(_build_message(task_id, model_id, dataset_id))
+    result = use_case.execute(_build_message(task_id, model_id, dataset_id, user_id))
 
-    assert task.status == TaskStatus.failed.value
-    assert "Only system models can be fine-tuned" in task.error_msg
-    use_case.task_repo.update.assert_called_once_with(task)
+    assert result["task_id"] == str(task_id)
+    assert result["status"] == TaskStatus.failed.value
+    assert "Only system models can be fine-tuned" in result["error_msg"]
     use_case.weights_loader.load.assert_not_called()
     use_case.dataset_loader.load.assert_not_called()
     use_case.model_repo.upload_model.assert_not_called()
@@ -170,15 +152,7 @@ def test_execute_continues_when_metrics_upload_fails(tmp_path, monkeypatch):
     task_id = uuid4()
     model_id = uuid4()
     dataset_id = uuid4()
-
-    task = SimpleNamespace(
-        id=task_id,
-        user_id=uuid4(),
-        status=TaskStatus.queued.value,
-        output_path=None,
-        error_msg=None,
-        updated_at=None,
-    )
+    user_id = uuid4()
     model = SimpleNamespace(
         id=model_id,
         name="base_model",
@@ -229,16 +203,15 @@ def test_execute_continues_when_metrics_upload_fails(tmp_path, monkeypatch):
         storage=storage,
         weights_loader=weights_loader,
         dataset_loader=dataset_loader,
-        task_repo=MagicMock(get_by_id=MagicMock(return_value=task)),
         model_repo=MagicMock(get_by_id=MagicMock(return_value=model)),
         dataset_repo=MagicMock(get_by_id=MagicMock(return_value=dataset)),
         trainer_factory=trainer_factory,
     )
 
-    use_case.execute(_build_message(task_id, model_id, dataset_id))
+    result = use_case.execute(_build_message(task_id, model_id, dataset_id, user_id))
 
-    assert task.status == TaskStatus.succeeded.value
-    assert task.output_path == "models/final.pt"
+    assert result["status"] == TaskStatus.succeeded.value
+    assert result["output_path"] == "models/final.pt"
 
     uploaded_model = use_case.model_repo.upload_model.call_args[0][0]
     assert uploaded_model.metrics_path is None
