@@ -1,8 +1,7 @@
 FROM python:3.12-slim
 
-ARG PYTORCH_CUDA_INDEX_URL=https://download.pytorch.org/whl/cu124
-ARG TORCH_VERSION=2.6.0+cu124
-ARG TORCHVISION_VERSION=0.21.0+cu124
+ARG TORCH_VERSION=2.6.0
+ARG TORCHVISION_VERSION=0.21.0
 ARG ULTRALYTICS_VERSION=8.3.237
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,8 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 ENV PYTHONPATH=/app \
-    NVIDIA_VISIBLE_DEVICES=all \
-    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 COPY wait-for-it.sh /wait-for-it.sh
@@ -28,7 +25,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
-        --index-url "${PYTORCH_CUDA_INDEX_URL}" \
+        --index-url https://download.pytorch.org/whl/cpu \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" && \
     pip install --no-cache-dir \
@@ -48,6 +45,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
     sed -E '/^[[:space:]]*(torch|torchvision|torchaudio|triton|ultralytics)([<>=~! ]|$)/d' requirements.txt > /tmp/requirements-base.txt && \
     PIP_NO_DEPS=1 pip install --no-cache-dir -r /tmp/requirements-base.txt && \
     pip install --no-cache-dir --no-deps "ultralytics==${ULTRALYTICS_VERSION}" && \
-    python -c "import torch, torchvision, ultralytics; print('torch', torch.__version__, 'cuda', torch.version.cuda); print('torchvision', torchvision.__version__); print('ultralytics', ultralytics.__version__); assert torch.__version__ == '${TORCH_VERSION}'; assert torchvision.__version__ == '${TORCHVISION_VERSION}'"
+    python -c "import torch, torchvision, ultralytics; print('torch', torch.__version__, 'cuda', torch.version.cuda); print('torchvision', torchvision.__version__); print('ultralytics', ultralytics.__version__); assert torch.version.cuda is None"
 
 COPY . .

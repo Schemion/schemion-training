@@ -58,7 +58,8 @@ def process_training_task(message: dict, client: BobberClient):
 
         use_case = DetectorTrainingUseCase(storage=storage, weights_loader=weights_loader,
                                            model_repo=model_repository, trainer_factory=trainer_factory,
-                                           dataset_loader=dataset_loader, dataset_repo=dataset_repository)
+                                           dataset_loader=dataset_loader, dataset_repo=dataset_repository,
+                                           progress_callback=lambda update: _publish_task_status(client, update))
 
         status_update = use_case.execute(message)
     except Exception as exc:

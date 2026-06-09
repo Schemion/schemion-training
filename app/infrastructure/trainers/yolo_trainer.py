@@ -2,8 +2,10 @@ import os
 import uuid
 import csv
 from contextlib import contextmanager
+from collections.abc import Callable
 
 from ultralytics import YOLO
+import yaml
 
 from app.core.interfaces.detector_trainer_interface import IDetectorTrainer
 
@@ -23,6 +25,7 @@ class YoloTrainer(IDetectorTrainer):
         self.architecture_profile = architecture_profile
         self.model = None
         self._last_metrics: list[dict] = []
+        self._class_names: list[str] = []
 
     def load_model(self, weights_path: str) -> None:
         self.model = YOLO(weights_path)
@@ -65,8 +68,61 @@ class YoloTrainer(IDetectorTrainer):
 
         return metrics
 
-    def train(self, dataset_yaml_path: str, image_size: int | None = None, epochs: int | None = None, name: str | None = None):
+    @staticmethod
+    def _parse_class_names(dataset_yaml_path: str) -> list[str]:
+        if not os.path.isfile(dataset_yaml_path):
+            return []
+        with open(dataset_yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        names = data.get("names", [])
+        if isinstance(names, dict):
+            items = []
+            for key, value in names.items():
+                try:
+                    items.append((int(key), str(value)))
+                except (TypeError, ValueError):
+                    continue
+            items.sort(key=lambda item: item[0])
+            return [value for _, value in items]
+        if isinstance(names, list):
+            return [str(value) for value in names]
+        return []
+
+    @staticmethod
+    def _metrics_from_trainer(trainer) -> dict:
+        metrics = {}
+        source = getattr(trainer, "metrics", None)
+        if isinstance(source, dict):
+            for key, value in source.items():
+                try:
+                    metrics[str(key)] = float(value)
+                except (TypeError, ValueError):
+                    pass
+        return metrics
+
+    def _register_progress_callback(self, progress_callback: Callable[[dict], None] | None) -> None:
+        if progress_callback is None or self.model is None or not hasattr(self.model, "add_callback"):
+            return
+
+        def _on_fit_epoch_end(trainer):
+            epoch = int(getattr(trainer, "epoch", 0)) + 1
+            metrics = {"epoch": epoch}
+            metrics.update(self._metrics_from_trainer(trainer))
+            progress_callback({"epoch": epoch, "metrics": metrics})
+
+        self.model.add_callback("on_fit_epoch_end", _on_fit_epoch_end)
+
+    def train(
+        self,
+        dataset_yaml_path: str,
+        image_size: int | None = None,
+        epochs: int | None = None,
+        name: str | None = None,
+        progress_callback: Callable[[dict], None] | None = None,
+    ):
         yaml_parent = os.path.dirname(os.path.abspath(dataset_yaml_path))
+        self._class_names = self._parse_class_names(dataset_yaml_path)
+        self._register_progress_callback(progress_callback)
 
         with _chdir(yaml_parent):
             epochs_val = epochs if epochs is not None else 10
@@ -100,8 +156,7 @@ class YoloTrainer(IDetectorTrainer):
 
     # йоло классы в таком виде не нужны
     def get_classes(self) -> list[str]:
-        pass
+        return list(self._class_names)
 
     def get_metrics(self) -> list[dict]:
         return list(self._last_metrics)
-

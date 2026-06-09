@@ -1,5 +1,6 @@
 import os
 import uuid
+from collections.abc import Callable
 
 import torch
 from torch.utils.data import DataLoader
@@ -88,7 +89,14 @@ class FasterRCNNTrainer(IDetectorTrainer):
             state = {k: v for k, v in state.items() if not k.startswith("roi_heads.box_predictor.")}
             self.model.load_state_dict(state, strict=False)
 
-    def train(self, dataset_path: str, image_size: int | None = None, epochs: int | None = None, name: str | None = None):
+    def train(
+        self,
+        dataset_path: str,
+        image_size: int | None = None,
+        epochs: int | None = None,
+        name: str | None = None,
+        progress_callback: Callable[[dict], None] | None = None,
+    ):
         yaml_path = os.path.abspath(dataset_path)
         yaml_dir = os.path.dirname(yaml_path)
 
@@ -159,6 +167,8 @@ class FasterRCNNTrainer(IDetectorTrainer):
             for key, total in loss_totals.items():
                 record[key] = total / batch_count
             self._last_metrics.append(record)
+            if progress_callback is not None:
+                progress_callback({"epoch": epoch + 1, "metrics": record})
 
         return {
             "train_size": len(train_dataset),

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 
@@ -8,7 +9,14 @@ class IDetectorTrainer(ABC):
         ...
 
     @abstractmethod
-    def train(self, dataset_path: str, image_size: int | None = None, epochs: int | None = None, name: str | None = None) -> Any:
+    def train(
+        self,
+        dataset_path: str,
+        image_size: int | None = None,
+        epochs: int | None = None,
+        name: str | None = None,
+        progress_callback: Callable[[dict], None] | None = None,
+    ) -> Any:
         ...
 
     @abstractmethod
